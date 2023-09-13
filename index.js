@@ -45,6 +45,7 @@ async function run() {
         const allProductCollection = client.db("KhejurDB").collection("products");
         const cartCollection = client.db("KhejurDB").collection("cart");
         const usersCollection = client.db("KhejurDB").collection("users");
+        const reviewsCollection = client.db("KhejurDB").collection("reviews");
 
         // JWT
         app.post("/jwt", async (req, res) => {
@@ -70,6 +71,17 @@ async function run() {
             res.send(result);
         })
 
+        app.get("/users-carts", verifyJWT, async (req, res) => {
+            const decodedEmail = req.decoded.email;
+            const email = req.query.email;
+            if (email === decodedEmail) {
+                const result = await cartCollection.find({ email: email }).toArray();
+                return res.send(result)
+            } else {
+                return res.status(401).send({ error: true, message: "Unauthorized Access" })
+            }
+        })
+
 
 
         // users api
@@ -84,6 +96,22 @@ async function run() {
                 return res.send(result);
             }
         })
+
+
+
+
+        // Review
+        app.get("/reviews", async (req, res) => {
+            const result = await reviewsCollection.find({}).toArray();
+            res.send(result)
+        })
+        
+        app.post("/write-review", verifyJWT, async (req, res) => {
+            const newReview = req.body;
+            const result = await reviewsCollection.insertOne(newReview);
+            res.send(result);
+        })
+
 
 
 
