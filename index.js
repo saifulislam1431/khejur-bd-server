@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const port = process.env.PORT || 5000;
 const app = express();
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@khejurbd.2z99p4m.mongodb.net/?retryWrites=true&w=majority`;
 
 app.use(cors());
@@ -46,6 +46,8 @@ async function run() {
         const cartCollection = client.db("KhejurDB").collection("cart");
         const usersCollection = client.db("KhejurDB").collection("users");
         const reviewsCollection = client.db("KhejurDB").collection("reviews");
+        const districtsCollection = client.db("KhejurDB").collection("districts");
+        const ordersCollection = client.db("KhejurDB").collection("orders");
 
         // JWT
         app.post("/jwt", async (req, res) => {
@@ -97,6 +99,38 @@ async function run() {
             }
         })
 
+        app.get("/user", verifyJWT, async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email };
+            if (query) {
+                const result = await usersCollection.findOne(query);
+                res.send(result)
+            }
+        })
+
+        app.patch("/update-user-info/:id", async (req, res) => {
+            const id = req.params.id;
+            const data = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const user = await usersCollection.findOne(filter);
+            if (user?.state && user?.city && user?.address && user?.postalCode) {
+                return res.json("Already Added")
+            } else {
+                const addressInfo = {
+                    $set: {
+                        address: data.address,
+                        state: data.state,
+                        city: data.city,
+                        postalCode: data.postalCode,
+                        addressType: data.addressType
+                    }
+
+                }
+                const result = await usersCollection.updateOne(filter, addressInfo)
+                res.send(result)
+            }
+        })
+
 
 
 
@@ -105,7 +139,7 @@ async function run() {
             const result = await reviewsCollection.find({}).toArray();
             res.send(result)
         })
-        
+
         app.post("/write-review", verifyJWT, async (req, res) => {
             const newReview = req.body;
             const result = await reviewsCollection.insertOne(newReview);
@@ -113,7 +147,25 @@ async function run() {
         })
 
 
+        app.get("/all-districts", async (req, res) => {
+            const result = await districtsCollection.find({}).toArray();
+            res.send(result)
+        })
 
+
+        // Orders
+        app.post("/confirm-orders", verifyJWT, async(req,res)=>{
+            const email = req.query.email;
+            const newOrder = req.body;
+            if(email && newOrder){
+                const result = await ordersCollection.insertOne(newOrder);
+                if(result){
+                    const query = {email: email};
+                    const dltResult = await cartCollection.deleteMany(query)
+                    res.send(dltResult)
+                }
+            }
+        })
 
 
 
