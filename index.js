@@ -113,7 +113,7 @@ async function run() {
             const data = req.body;
             const filter = { _id: new ObjectId(id) };
             const user = await usersCollection.findOne(filter);
-            if (user?.state && user?.city && user?.address && user?.postalCode) {
+            if (user?.state === data?.state && user?.city === data?.city && user?.address && data?.address) {
                 return res.json("Already Added")
             } else {
                 const addressInfo = {
