@@ -84,6 +84,14 @@ async function run() {
             }
         })
 
+        app.delete("/remove-cart/:id", verifyJWT ,async(req,res)=>{
+            const id = req.params.id;
+            const query = {_id: new ObjectId(id)};
+            const result = await cartCollection.deleteOne(query);
+            res.send(result)
+
+        })
+
 
 
         // users api
