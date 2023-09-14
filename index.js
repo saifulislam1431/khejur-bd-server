@@ -56,6 +56,39 @@ async function run() {
             res.send({ token })
         })
 
+        //Verify Admin
+
+        const verifyAdmin = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email }
+            const result = await usersCollection.findOne(query)
+            if (result?.role !== "admin") {
+                return res.status(403).send({ error: true, message: "Forbidden access" })
+            }
+            next()
+        }
+
+        app.get("/users/admin/:email", verifyJWT, async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+            const user = await usersCollection.findOne(query);
+      
+            const result = { admin: user?.role === "admin" }
+            res.send(result);
+          })
+
+          app.patch("/users/admin/:id", verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const userUpdate = {
+              $set: {
+                role: "admin"
+              }
+            };
+            const result = await usersCollection.updateOne(filter, userUpdate);
+            res.send(result);
+          })
+
 
 
 
@@ -84,9 +117,9 @@ async function run() {
             }
         })
 
-        app.delete("/remove-cart/:id", verifyJWT ,async(req,res)=>{
+        app.delete("/remove-cart/:id", verifyJWT, async (req, res) => {
             const id = req.params.id;
-            const query = {_id: new ObjectId(id)};
+            const query = { _id: new ObjectId(id) };
             const result = await cartCollection.deleteOne(query);
             res.send(result)
 
@@ -119,9 +152,10 @@ async function run() {
         app.patch("/update-user-info/:id", async (req, res) => {
             const id = req.params.id;
             const data = req.body;
+            console.log(data);
             const filter = { _id: new ObjectId(id) };
             const user = await usersCollection.findOne(filter);
-            if (user?.state === data?.state && user?.city === data?.city && user?.address && data?.address) {
+            if (user?.state === data?.state && user?.city === data?.city && user?.address === data?.address && user?.phone === data?.phone) {
                 return res.json("Already Added")
             } else {
                 const addressInfo = {
@@ -129,6 +163,7 @@ async function run() {
                         address: data.address,
                         state: data.state,
                         city: data.city,
+                        phone: data.phone,
                         postalCode: data.postalCode,
                         addressType: data.addressType
                     }
@@ -162,17 +197,24 @@ async function run() {
 
 
         // Orders
-        app.post("/confirm-orders", verifyJWT, async(req,res)=>{
+        app.post("/confirm-orders", verifyJWT, async (req, res) => {
             const email = req.query.email;
             const newOrder = req.body;
-            if(email && newOrder){
+            if (email && newOrder) {
                 const result = await ordersCollection.insertOne(newOrder);
-                if(result){
-                    const query = {email: email};
+                if (result) {
+                    const query = { email: email };
                     const dltResult = await cartCollection.deleteMany(query)
                     res.send(dltResult)
                 }
             }
+        })
+
+        app.get("/customers-orders", verifyJWT, async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email };
+            const result = await ordersCollection.find(query).toArray();
+            res.send(result)
         })
 
 
