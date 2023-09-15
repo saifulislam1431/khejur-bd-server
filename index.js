@@ -72,22 +72,22 @@ async function run() {
             const email = req.params.email;
             const query = { email: email };
             const user = await usersCollection.findOne(query);
-      
+
             const result = { admin: user?.role === "admin" }
             res.send(result);
-          })
+        })
 
-          app.patch("/users/admin/:id", verifyJWT, async (req, res) => {
+        app.patch("/users/admin/:id", verifyJWT, async (req, res) => {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) }
             const userUpdate = {
-              $set: {
-                role: "admin"
-              }
+                $set: {
+                    role: "admin"
+                }
             };
             const result = await usersCollection.updateOne(filter, userUpdate);
             res.send(result);
-          })
+        })
 
 
 
@@ -98,6 +98,40 @@ async function run() {
             const result = await allProductCollection.find({}).toArray();
             res.send(result)
         })
+
+        app.post("/new-product", verifyJWT, verifyAdmin, async (req, res) => {
+            const newProduct = req.body;
+            const result = await allProductCollection.insertOne(newProduct)
+            res.send(result)
+        })
+
+        app.patch("/update-product/:id", verifyJWT, verifyAdmin, async (req, res) => {
+            const newData = req.body;
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const existProduct = await allProductCollection.findOne(filter);
+            if (existProduct) {
+                const updateData = {
+                    $set: {
+                        name: newData.name,
+                        price: newData.price,
+                        imageUrl: newData.imageUrl,
+                        category: newData.category,
+                        size: newData.size,
+                        color: newData.color,
+                        brand: newData.brand,
+                        stock: newData.stock,
+                        countryOfOrigin: newData.countryOfOrigin,
+                        peopleWatched: newData.peopleWatched,
+                        description: newData.description,
+                        reviews: newData.reviews
+                    }
+                }
+                const result = await allProductCollection.updateOne(filter, updateData)
+                res.send(result)
+            }
+        })
+
 
         // Cart Api
         app.post("/product-cart", verifyJWT, async (req, res) => {
@@ -147,6 +181,11 @@ async function run() {
                 const result = await usersCollection.findOne(query);
                 res.send(result)
             }
+        })
+
+        app.get("/all-user", verifyJWT, verifyAdmin, async (req, res) => {
+            const result = await usersCollection.find({}).toArray();
+            res.send(result);
         })
 
         app.patch("/update-user-info/:id", async (req, res) => {
@@ -215,6 +254,26 @@ async function run() {
             const query = { email: email };
             const result = await ordersCollection.find(query).toArray();
             res.send(result)
+        })
+
+        app.get("/all-orders", verifyJWT, verifyAdmin, async (req, res) => {
+            const result = await ordersCollection.find({}).toArray();
+            res.send(result);
+        })
+
+        app.patch("/order-manage/:id", verifyJWT, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const newBody = req.body;
+            const existOrder = await ordersCollection.findOne({ _id: new ObjectId(id) });
+            if (existOrder) {
+                const updateStatus = {
+                    $set: {
+                        orderStatus: newBody.orderStatus
+                    }
+                }
+                const result = await ordersCollection.updateOne(filter, updateStatus)
+            }
         })
 
 
