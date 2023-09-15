@@ -68,7 +68,7 @@ async function run() {
             next()
         }
 
-        app.get("/users/admin/:email", verifyJWT, async (req, res) => {
+        app.get("/users/admin/:email", verifyJWT, verifyAdmin, async (req, res) => {
             const email = req.params.email;
             const query = { email: email };
             const user = await usersCollection.findOne(query);
@@ -77,9 +77,9 @@ async function run() {
             res.send(result);
         })
 
-        app.patch("/users/admin/:id", verifyJWT, async (req, res) => {
+        app.patch("/users/admin/:id", verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id;
-            const filter = { _id: new ObjectId(id) }
+            const filter = {_id: new ObjectId(id) }
             const userUpdate = {
                 $set: {
                     role: "admin"
@@ -124,12 +124,20 @@ async function run() {
                         countryOfOrigin: newData.countryOfOrigin,
                         peopleWatched: newData.peopleWatched,
                         description: newData.description,
+                        popularity: newData.popularity,
                         reviews: newData.reviews
                     }
                 }
                 const result = await allProductCollection.updateOne(filter, updateData)
                 res.send(result)
             }
+        })
+
+        app.delete("/delete-product/:id", verifyJWT, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await allProductCollection.deleteOne(query);
+            res.send(result)
         })
 
 
@@ -213,6 +221,13 @@ async function run() {
             }
         })
 
+        app.delete("/user-delete/:id" , verifyJWT, verifyAdmin, async(req,res)=>{
+            const id = req.params.id;
+            const query = {_id: new ObjectId(id)};
+            const result = await usersCollection.deleteOne(query);
+            res.send(result)
+        })
+
 
 
 
@@ -273,6 +288,7 @@ async function run() {
                     }
                 }
                 const result = await ordersCollection.updateOne(filter, updateStatus)
+                res.send(result)
             }
         })
 
