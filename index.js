@@ -79,7 +79,7 @@ async function run() {
 
         app.patch("/users/admin/:id", verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id;
-            const filter = {_id: new ObjectId(id) }
+            const filter = { _id: new ObjectId(id) }
             const userUpdate = {
                 $set: {
                     role: "admin"
@@ -95,7 +95,7 @@ async function run() {
 
         // All products
         app.get('/all-products', async (req, res) => {
-            const result = await allProductCollection.find({}).toArray();
+            const result = await allProductCollection.find({}).sort({ name: 1 }).toArray();
             res.send(result)
         })
 
@@ -137,6 +137,22 @@ async function run() {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await allProductCollection.deleteOne(query);
+            res.send(result)
+        })
+
+        // Search product by name
+        const indexKeys = { name: 1 };
+        const indexOptions = { name: "name" }
+        const result = await allProductCollection.createIndex(indexKeys, indexOptions);
+
+        app.get("/search-product/name/:text", async (req, res) => {
+            const text = req.params.text;
+            const result = await allProductCollection.find({
+                $or: [
+                    { name: { $regex: text, $options: "i" } }
+                ],
+            }).toArray()
+            // console.log(result);
             res.send(result)
         })
 
@@ -202,12 +218,14 @@ async function run() {
             console.log(data);
             const filter = { _id: new ObjectId(id) };
             const user = await usersCollection.findOne(filter);
-            if (user?.state === data?.state && user?.city === data?.city && user?.address === data?.address && user?.phone === data?.phone) {
+            if (user?.state === data?.state && user?.city === data?.city && user?.unionThana === data?.unionThana && user?.phone === data?.phone && user?.road === data?.road && user?.house === data?.house) {
                 return res.json("Already Added")
             } else {
                 const addressInfo = {
                     $set: {
-                        address: data.address,
+                        house: data.house,
+                        road: data.road,
+                        unionThana: data.unionThana,
                         state: data.state,
                         city: data.city,
                         phone: data.phone,
@@ -221,9 +239,9 @@ async function run() {
             }
         })
 
-        app.delete("/user-delete/:id" , verifyJWT, verifyAdmin, async(req,res)=>{
+        app.delete("/user-delete/:id", verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id;
-            const query = {_id: new ObjectId(id)};
+            const query = { _id: new ObjectId(id) };
             const result = await usersCollection.deleteOne(query);
             res.send(result)
         })
@@ -243,6 +261,29 @@ async function run() {
             res.send(result);
         })
 
+
+        app.patch("/update-review/:id", verifyJWT, verifyAdmin, async (req, res) => {
+            const newReview = req.body;
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const existRev = await reviewsCollection.findOne(filter);
+            if (existRev) {
+                const updateRev = {
+                    $set: {
+                        status: newReview.status
+                    }
+                }
+                const result = await reviewsCollection.updateOne(filter, updateRev)
+                res.send(result);
+            }
+
+        })
+
+        app.delete("/delete-review/:id", verifyJWT, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            const result = await reviewsCollection.deleteOne({ _id: new ObjectId(id) })
+            res.send(result)
+        })
 
         app.get("/all-districts", async (req, res) => {
             const result = await districtsCollection.find({}).toArray();
